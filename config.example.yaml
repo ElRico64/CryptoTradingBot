@@ -1,0 +1,131 @@
+# memebot configuration. Copy to config.yaml and edit.
+# Every key is optional; anything left out uses the default shown here.
+
+general:
+  mode: paper                  # paper | live   (live also needs MEMEBOT_I_ACCEPT_THE_RISK=yes)
+  chains: [solana]             # solana, base, bsc, ethereum
+  db_path: memebot.db
+  log_level: INFO
+  monitor_interval_sec: 3      # how often open positions are re-priced
+  status_interval_sec: 60
+  reevaluate_after_sec: 300
+  confluence_window_sec: 1800  # signals from different sources within 30 min count together
+  analysis_workers: 4
+
+risk:
+  paper_starting_balance_usd: 1000
+  position_pct: 4              # % of equity per normal-conviction trade (x0.7 .. x1.5 by score)
+  min_position_usd: 10
+  max_position_usd: 500
+  max_pool_liquidity_pct: 1.5  # never more than 1.5% of the pool: keeps slippage sane and exits possible
+  max_open_positions: 4
+  max_positions_per_narrative: 1
+  max_trades_per_day: 8        # quality over quantity
+  max_daily_loss_pct: 12       # kill switch for the rest of the UTC day
+  loss_streak_pause: 3
+  loss_streak_pause_min: 90
+  min_cash_reserve_usd: 5
+
+filters:
+  min_liquidity_usd: 20000
+  max_liquidity_usd: 5000000
+  min_market_cap_usd: 40000
+  max_market_cap_usd: 25000000
+  max_age_hours: 72
+  min_txns_h1: 150
+  min_volume_h1_usd: 25000
+  min_liquidity_to_mcap: 0.03
+  max_price_change_h1_pct: 800
+
+safety:
+  fail_closed: true
+  require_mint_revoked: true
+  require_freeze_revoked: true
+  max_top10_holders_pct: 30
+  max_insider_pct: 15
+  max_rugcheck_risk: 60
+  max_buy_tax_pct: 5
+  max_sell_tax_pct: 5
+  max_roundtrip_loss_pct: 12
+  min_holders: 150
+
+scoring:
+  entry_threshold: 72
+  strong_threshold: 85
+  min_confluence: 2            # independent reasons required (smart money, narrative, chart, flow, momentum)
+  weights: {momentum: 1.0, order_flow: 1.4, liquidity: 1.0, earliness: 0.8, pattern: 1.4, safety: 1.0}
+  kol_bonus_max: 15
+  narrative_bonus_max: 15
+  use_ohlcv_patterns: true
+  learned_model_path: model.json
+  learned_model_weight: 0.3
+  learned_model_min_samples: 40
+
+exits:
+  stop_loss_pct: 30
+  take_profits:                # sell_fraction is of what is still held
+    - {multiple: 2.0, sell_fraction: 0.5}   # stake back at 2x; set 1.0 to fully exit at 2x
+    - {multiple: 5.0, sell_fraction: 0.5}
+    - {multiple: 10.0, sell_fraction: 0.5}
+  breakeven_floor_multiple: 1.1
+  trail_tiers:
+    - {from_multiple: 1.6, drawdown_pct: 35}
+    - {from_multiple: 3.0, drawdown_pct: 30}
+    - {from_multiple: 6.0, drawdown_pct: 25}
+    - {from_multiple: 15.0, drawdown_pct: 20}
+  time_stop_min: 30
+  time_stop_min_peak_multiple: 1.25
+  max_hold_hours: 24
+  liquidity_drop_exit_pct: 40
+  kol_exit_min_sellers: 1
+  flow_reversal_exit: true
+  flow_reversal_buy_ratio: 0.32
+  missing_price_exit_checks: 20
+
+execution:
+  slippage_bps: 1500
+  sell_slippage_bps_max: 4900
+  max_price_impact_pct: 4
+  priority_fee_max_lamports: 3000000   # 0.003 SOL cap per swap
+  priority_level: veryHigh
+  skip_preflight: true
+  confirm_timeout_sec: 60
+  jupiter_base_url: https://lite-api.jup.ag   # set JUPITER_API_KEY to use api.jup.ag instead
+  paper_fee_pct: 1.0
+  paper_extra_slippage_pct: 1.0
+
+kol:
+  enabled: false
+  min_weight: 2.0              # e.g. two weight-1 wallets, or one weight-2 wallet you trust a lot
+  window_min: 30
+  min_buy_sol: 0.5
+  poll_interval_sec: 8
+  wallets: []
+  # Add wallets you have vetted yourself (kolscan.io, GMGN, Cielo, your own research), e.g.
+  #   - {address: <wallet address>, name: someKOL, weight: 1.0}
+
+narrative:
+  enabled: true
+  x_accounts: []               # needs X_BEARER_TOKEN, e.g. [{username: elonmusk, weight: 1.0}]
+  x_poll_interval_sec: 60
+  rss_feeds: []                # any RSS/Atom news feeds you trust
+  rss_poll_interval_sec: 60
+  manual_file: narratives.txt  # `echo "headline" >> narratives.txt` injects it instantly
+  watch_keywords: []           # standing themes, e.g. ["Golden Dome", "Superintelligence"]
+  ttl_hours: 12
+  half_life_hours: 3
+  research_interval_sec: 45
+  min_match: 0.6
+  use_llm: false               # needs ANTHROPIC_API_KEY; Claude predicts the tickers a post will spawn
+  llm_model: claude-opus-5-5
+  llm_effort: low
+
+sources:
+  dexscreener: true
+  dexscreener_interval_sec: 20
+  geckoterminal: true
+  geckoterminal_interval_sec: 60
+  pumpportal: true
+
+notify:
+  telegram: false              # needs TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID
